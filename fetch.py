@@ -117,7 +117,7 @@ for symbol in symbols:
     }
     markets.append(market)
 
-db = sqlite3.connect('/opt/webservice/sites/jerkb0t_net/data/market.dat')
+db = sqlite3.connect('data/market.dat')
 cursor = db.cursor()
 cursor.execute(sql_create_table)
 db.commit()
