@@ -1,0 +1,179 @@
+<!doctype html>
+<html>
+<head>
+	<link rel="stylesheet" href="dist/uPlot.min.css" />
+	<link rel="stylesheet" href="css/uikit.min.css" />
+</head>
+
+<body>
+	<script src="dist/uPlot.iife.min.js"></script>
+	<script src="js/uikit.min.js"></script>
+	<script src="js/uikit-icons.min.js"></script>
+	<script src="js/cookies.js"></script>
+
+
+<select id="assets">
+{% for entry in data %}
+	<option value="{{ escape(entry[0]) }}">{{ escape(entry[0]) }}</option>
+{% end %}
+</select>
+<button id="add_button">add to watchlist</button>
+
+<ul id="watchlist" class="uk-grid-small uk-child-width-1-2 uk-child-width-1-4@s" uk-sortable="handle: .uk-card" uk-grid>
+</ul>
+
+<script>
+
+var add_button = document.getElementById("add_button");
+var assets = [];
+add_button.onclick = function() {
+	var select_element = document.getElementById("assets");
+	var selected = select_element.value;
+
+	console.log(selected);
+
+	var assets_of_interest = getCookie("assets_of_interest");
+	if (assets_of_interest != "")
+		assets = JSON.parse(assets_of_interest);
+	assets.push(selected);
+	var assets_str = JSON.stringify(assets);
+	setCookie("assets_of_interest", assets_str, 365);
+	location.reload();
+};
+
+async function http_get(path) {
+	let response = await fetch(path);
+	let txt = await response.text();
+
+	return txt;
+};
+
+async function get_markets(base) {
+	let rtn = await http_get('../asset/' + base + '/');
+	
+	return rtn;
+};
+
+async function get_market(exchange, base, quote) {
+	let rtn = await http_get('../market_history/' + exchange + '/' + base + '/' + quote + '/');
+
+	return rtn;
+};
+
+var watchlist = document.getElementById("watchlist");
+var assets_str = getCookie("assets_of_interest");
+if (assets_str != "") {
+	var asset_list = JSON.parse(assets_str);
+	asset_list.forEach(async function(base_asset, index) {
+		let asset_markets_string = await get_markets(base_asset);
+		let asset_markets = JSON.parse(asset_markets_string);
+
+		asset_markets.forEach(async function(quote_market, market_index) {
+			let exchange = quote_market[1];
+			let quote_asset = quote_market[0];
+			let market_string = await get_market(exchange, base_asset, quote_asset);
+			let market = JSON.parse(market_string);
+			//console.log(market_string);
+			let timestamps = [];
+			let best_bid = [];
+			let best_ask = [];
+			let prices = [];
+			let low24 = [];
+			let high24 = [];
+			let vol24 = [];
+			let change24 = [];
+			market.forEach(function(entry, entry_index) {
+				timestamps.push(entry[0]);
+				best_bid.push(entry[4]);
+				best_ask.push(entry[5]);
+				prices.push(entry[6]);
+				low24.push(entry[7]);
+				high24.push(entry[8]);
+				vol24.push(entry[9]);
+				change24.push(entry[10]);
+				console.log(entry)
+			});
+			var div_entry = document.createElement('div');
+			div_entry.classList.add('uk-card');
+			div_entry.classList.add('uk-card-default');
+			div_entry.classList.add('uk-card-body');
+			div_entry.classList.add('uk-text-center');
+			var table_entry = document.createElement('table');
+			var table_header = table_entry.insertRow(0);
+			var current_header = table_header.insertCell(0);
+			var last24_header = table_header.insertCell(1);
+			var table_row1 = table_entry.insertRow(1);
+			var table_last_price = table_row1.insertCell(0);
+			var table_low24 = table_row1.insertCell(1);
+			var table_row2 = table_entry.insertRow(2);
+			var table_best_bid = table_row2.insertCell(0);
+			var table_high24 = table_row2.insertCell(1);
+			var table_row3 = table_entry.insertRow(3);
+			var table_best_ask = table_row3.insertCell(0);
+			var table_vol24 = table_row3.insertCell(1);
+			var table_row4 = table_entry.insertRow(4);
+			var table_fill = table_row4.insertCell(0);
+			var table_change24 = table_row4.insertCell(1);
+
+			current_header.innerHTML = "Latest";
+			last24_header.innerHTML = "24 Hours";
+			table_last_price.innerHTML = "<P class='uk-text-small'>Price: " + Number.parseFloat(prices[prices.length - 1]).toFixed(8) + " " + quote_asset + "</P>";
+			table_low24.innerHTML = "<P class='uk-text-small'>Low: " + Number.parseFloat(low24[low24.length - 1]).toFixed(8) + " " + quote_asset + "</P>";
+			table_best_bid.innerHTML = "<P class='uk-text-small'>Bid: " + Number.parseFloat(best_bid[best_bid.length - 1]).toFixed(8) + " " + quote_asset + "</P>";
+			table_high24.innerHTML = "<P class='uk-text-small'>High: " + Number.parseFloat(high24[high24.length - 1]).toFixed(8) + " " + quote_asset + "</P>";
+			table_best_ask.innerHTML = "<P class='uk-text-small'>Ask: " + Number.parseFloat(best_ask[best_ask.length - 1]).toFixed(8) + " " + quote_asset + "</P>";
+			table_vol24.innerHTML = "<P class='uk-text-small'>Volume: " + Number.parseFloat(vol24[vol24.length - 1]).toFixed(8) + " " + base_asset + "</P>";
+			var change = change24[change24.length - 1] * 100;
+			table_change24.innerHTML = "<P class='uk-text-small'>Change: " + Number.parseFloat(change).toFixed(3) + "%</P>";
+
+			div_entry.innerHTML = "<h5 class='uk-heading-divider'>" + base_asset + "-" + quote_asset + " on " + exchange + "</h5>";
+			div_entry.appendChild(table_entry);
+
+			let asset_id = exchange + '-' + base_asset + '-' + quote_asset;
+			let chart_data = [timestamps, prices];
+			var chart_entry = document.createElement('div');
+			let chart = new uPlot({
+			        id: asset_id,
+			        width: 200,
+			        height: 30,
+			        select: {
+			                show: false,
+			        },
+			        cursor: {
+			                show: false,
+			        },
+			        legend: {
+			                show: false,
+			        },
+			        axes: [
+			                {
+			                        show: false,
+			                },
+			                {
+			                        show: false,
+			                }
+			        ],
+			        series: [
+			                {},
+			                {
+			                        show: true,
+			                        spanGaps: true,
+			                        stroke: "#03a9f4",
+			                        width: 1,
+			                        fill: "#b3e5fc",
+			                },
+			        ],
+			}, chart_data, chart_entry);
+
+			div_entry.appendChild(chart_entry);
+
+			var list_item = document.createElement('li');
+			list_item.appendChild(div_entry);
+			watchlist.appendChild(list_item);
+		});
+	});
+}
+
+</script>
+</body>
+</html>

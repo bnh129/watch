@@ -1,0 +1,32 @@
+The amazing UIKit and uPlot js libraries are included for convenience. They are not mine.
+
+The logger reference below is just a python logging handler.
+
+
+SiteHandlers.py can be used by a tornado application as follows:
+
+import tornado.web
+import SiteHandlers as site
+
+
+settings = {
+        "static_path": "www/",
+}
+
+app = tornado.web.Application([
+        (r"/market_history/(.*)", site.CryptoAssetHistoryRequestHandler, dict(
+                                path=settings['static_path'],
+                                logger=logger,
+                        ),
+        ),
+        (r"/asset/(.*)", site.CryptoAssetsRequestHandler, dict(
+                                path=settings['static_path'],
+                                logger=logger,
+                        ),
+        ),
+        (r"/watch/", site.CryptoWatchListRequestHandler, dict(
+                                path=settings['static_path'],
+                                logger=logger,
+                        ),
+        ),
+], **settings)
