@@ -17,7 +17,7 @@ sql_select_assets = """SELECT DISTINCT base_asset FROM markets ASC;"""
 
 class CryptoAssetHistoryRequestHandler(tornado.web.RequestHandler):
 
-	db_path = "sites/jerkb0t_net/data/market.dat"
+	db_path = "data/market.dat"
 	executor = ThreadPoolExecutor(4)
 
 	def initialize(self, path, logger):
@@ -50,7 +50,7 @@ class CryptoAssetHistoryRequestHandler(tornado.web.RequestHandler):
 
 class CryptoAssetsRequestHandler(tornado.web.RequestHandler):
 
-	db_path = "sites/jerkb0t_net/data/market.dat"
+	db_path = "data/market.dat"
 	executor = ThreadPoolExecutor(4)
 
 	def initialize(self, path, logger):
@@ -80,7 +80,7 @@ class CryptoAssetsRequestHandler(tornado.web.RequestHandler):
 
 class CryptoWatchListRequestHandler(tornado.web.RequestHandler):
 
-	db_path = "sites/jerkb0t_net/data/market.dat"
+	db_path = "data/market.dat"
 	executor = ThreadPoolExecutor(4)
 
 	def initialize(self, path, logger):
@@ -101,6 +101,6 @@ class CryptoWatchListRequestHandler(tornado.web.RequestHandler):
 	@tornado.gen.coroutine
 	def get(self):
 		data = yield self.get_data()
-		yield self.render(self.path + "watch/index.ht", data=data)
+		yield self.render(self.path + "www/index.ht", data=data)
 
 
